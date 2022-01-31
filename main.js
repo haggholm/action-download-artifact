@@ -24,14 +24,14 @@ async function main() {
 
         const client = github.getOctokit(token)
 
-        console.log("==> Workflow:", workflow)
+        core.info("==> Workflow:", workflow)
 
-        console.log("==> Repo:", owner + "/" + repo)
+        core.info("==> Repo:", owner + "/" + repo)
 
-        console.log("==> Conclusion:", workflowConclusion)
+        core.info("==> Conclusion:", workflowConclusion)
 
         if (pr) {
-            console.log("==> PR:", pr)
+            core.info("==> PR:", pr)
 
             const pull = await client.pulls.get({
                 owner: owner,
@@ -42,20 +42,20 @@ async function main() {
         }
 
         if (commit) {
-            console.log("==> Commit:", commit)
+            core.info("==> Commit:", commit)
         }
 
         if (branch) {
             branch = branch.replace(/^refs\/heads\//, "")
-            console.log("==> Branch:", branch)
+            core.info("==> Branch:", branch)
         }
 
         if (event) {
-            console.log("==> Event:", event)
+            core.info("==> Event:", event)
         }
 
         if (runNumber) {
-            console.log("==> RunNumber:", runNumber)
+            core.info("==> RunNumber:", runNumber)
         }
 
         if (!runID) {
@@ -105,7 +105,7 @@ async function main() {
         }
 
         if (runID) {
-            console.log("==> RunID:", runID)
+            core.info("==> RunID:", runID)
         } else {
             throw new Error("no matching workflow run found")
         }
@@ -115,6 +115,8 @@ async function main() {
             repo: repo,
             run_id: runID,
         })
+        core.debug(`Found ${artifacts.length} artifacts`);
+        artifacts.forEach((artifact) => core.debug(`  name: ${artifact.name}`))
 
         // One artifact or all if `name` input is not specified.
         if (name) {
@@ -123,15 +125,22 @@ async function main() {
             })
         }
 
-        if (artifacts.length == 0)
+        if (artifacts.length == 0) {
+            artifacts = await client.paginate(client.actions.listWorkflowRunArtifacts, {
+                owner: owner,
+                repo: repo,
+            })
+            core.debug(`Found ${artifacts.length} artifacts NOT filtered by run id`);
+            artifacts.forEach((artifact) => core.debug(`  name: ${artifact.name}`))
             throw new Error("no artifacts found")
+        }
 
         for (const artifact of artifacts) {
-            console.log("==> Artifact:", artifact.id)
+            core.info("==> Artifact:", artifact.id)
 
             const size = filesize(artifact.size_in_bytes, { base: 10 })
 
-            console.log(`==> Downloading: ${artifact.name}.zip (${size})`)
+            core.info(`==> Downloading: ${artifact.name}.zip (${size})`)
 
             const zip = await client.actions.downloadArtifact({
                 owner: owner,
@@ -150,7 +159,7 @@ async function main() {
                 const action = entry.isDirectory ? "creating" : "inflating"
                 const filepath = pathname.join(dir, entry.entryName)
 
-                console.log(`  ${action}: ${filepath}`)
+                core.info(`  ${action}: ${filepath}`)
             })
 
             adm.extractAllTo(dir, true)
