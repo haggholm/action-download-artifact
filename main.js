@@ -24,14 +24,14 @@ async function main() {
 
         const client = github.getOctokit(token)
 
-        core.info("==> Workflow:", workflow)
+        core.info(`==> Workflow: ${workflow}`)
 
-        core.info("==> Repo:", owner + "/" + repo)
+        core.info(`==> Repo: ${owner}/${repo}`)
 
-        core.info("==> Conclusion:", workflowConclusion)
+        core.info(`==> Conclusion: ${workflowConclusion}`)
 
         if (pr) {
-            core.info("==> PR:", pr)
+            core.info(`==> PR: ${pr}`)
 
             const pull = await client.pulls.get({
                 owner: owner,
@@ -42,20 +42,20 @@ async function main() {
         }
 
         if (commit) {
-            core.info("==> Commit:", commit)
+            core.info(`==> Commit: ${commit}`)
         }
 
         if (branch) {
             branch = branch.replace(/^refs\/heads\//, "")
-            core.info("==> Branch:", branch)
+            core.info(`==> Branch: ${branch}`)
         }
 
         if (event) {
-            core.info("==> Event:", event)
+            core.info(`==> Event: ${event}`)
         }
 
         if (runNumber) {
-            core.info("==> RunNumber:", runNumber)
+            core.info(`==> RunNumber: ${runNumber}`)
         }
 
         if (!runID) {
@@ -68,6 +68,7 @@ async function main() {
             }
             )) {
                 for (const run of runs.data) {
+                    console.log('Run', run);
                     if (commit && run.head_sha != commit) {
                         continue
                     }
@@ -105,7 +106,7 @@ async function main() {
         }
 
         if (runID) {
-            core.info("==> RunID:", runID)
+            core.info(`==> RunID: ${runID}`)
         } else {
             throw new Error("no matching workflow run found")
         }
@@ -126,17 +127,11 @@ async function main() {
         }
 
         if (artifacts.length == 0) {
-            artifacts = await client.paginate(client.actions.listWorkflowRunArtifacts, {
-                owner: owner,
-                repo: repo,
-            })
-            core.debug(`Found ${artifacts.length} artifacts NOT filtered by run id`);
-            artifacts.forEach((artifact) => core.debug(`  name: ${artifact.name}`))
             throw new Error("no artifacts found")
         }
 
         for (const artifact of artifacts) {
-            core.info("==> Artifact:", artifact.id)
+            core.info(`==> Artifact: ${artifact.id}`)
 
             const size = filesize(artifact.size_in_bytes, { base: 10 })
 
